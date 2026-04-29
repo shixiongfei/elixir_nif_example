@@ -1,0 +1,40 @@
+!IF EXIST("Makefile.auto.win")
+!INCLUDE Makefile.auto.win
+!IF [del /f /q Makefile.auto.win] == 0
+!ENDIF
+!ENDIF
+
+NMAKE = nmake /$(MAKEFLAGS)
+
+CFLAGS = /O2 /W3 /EHsc /MT
+LDFLAGS = /LD
+
+OUTDIR = priv
+NAME = $(OUTDIR)\nif
+NIF = $(NAME).dll
+
+OBJ_DIR = _build\objs
+SRC = c_src/nif.c
+
+all: clean $(NIF)
+
+clean:
+	if exist $(NIF) del /f /q $(NIF)
+	if exist $(NAME).exp del /f /q $(NAME).exp
+	if exist $(NAME).lib del /f /q $(NAME).lib
+	if exist $(OBJ_DIR) rmdir /s /q $(OBJ_DIR)
+
+Makefile.auto.win:
+  erl -noshell -eval "io:format(\"ERL_INCLUDE_PATH=~ts/erts-~ts/include/\", [code:root_dir(), erlang:system_info(version)])." -s erlang halt > $@
+
+!IFDEF ERL_INCLUDE_PATH
+$(NIF):
+	if not exist $(OUTDIR) mkdir $(OUTDIR)
+	if not exist $(OBJ_DIR) mkdir $(OBJ_DIR)
+	$(CC) $(CFLAGS) $(LDFLAGS) /I"$(ERL_INCLUDE_PATH)" /Fo"$(OBJ_DIR)\\" /Fe$(NIF) $(SRC)
+!ELSE
+$(NIF): Makefile.auto.win
+	$(NMAKE) -F Makefile.win $(NIF)
+!ENDIF
+
+.PHONY: all clean
